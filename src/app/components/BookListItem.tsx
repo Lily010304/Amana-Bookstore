@@ -80,12 +80,12 @@ const BookListItem: React.FC<BookListItemProps> = ({ book, onAddToCart }) => {
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow duration-200">
+    <div className="bg-white/70 backdrop-blur-sm rounded-lg shadow-md shadow-pink-200/40 border border-white/60 hover:shadow-lg hover:shadow-purple-200/50 transition-all duration-300">
       <div className="flex items-center p-4 gap-4">
         {/* Book Cover/Icon - Left Side */}
         <Link href={`/book/${book.id}`} className="flex-shrink-0 cursor-pointer">
-          <div className="w-16 h-20 bg-gray-200 rounded-md flex items-center justify-center hover:bg-gray-300 transition-colors duration-200">
-            <div className="text-2xl text-gray-400">📚</div>
+          <div className="w-16 h-20 bg-gradient-to-br from-pink-50/70 to-purple-50/70 rounded-md flex items-center justify-center hover:from-pink-100/70 hover:to-purple-100/70 transition-all duration-200 border border-white/50">
+            <div className="text-2xl text-purple-400">📚</div>
           </div>
         </Link>
 
@@ -162,8 +162,8 @@ const BookListItem: React.FC<BookListItemProps> = ({ book, onAddToCart }) => {
                       : showSuccess
                       ? 'bg-green-600 text-white cursor-pointer'
                       : isAddingToCart
-                      ? 'bg-blue-400 text-white cursor-wait'
-                      : 'bg-blue-600 text-white hover:bg-blue-700 cursor-pointer'
+                      ? 'bg-purple-400 text-white cursor-wait'
+                      : 'bg-purple-600 text-white hover:bg-purple-700 cursor-pointer'
                   }`}
                 >
                   {showSuccess ? (

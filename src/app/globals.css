@@ -7,7 +7,20 @@
   }
 }
 
-/* Ensure light background without conflicting with Tailwind */
+/* Dreamy pink gradient background for the entire site */
 html {
-  background-color: #f9fafb;
+  background: linear-gradient(135deg, 
+    #fdf2f8 0%,     /* Very light pink */
+    #fce7f3 25%,    /* Light pink */
+    #f3e8ff 50%,    /* Light purple */
+    #e0e7ff 75%,    /* Light indigo */
+    #ddd6fe 100%    /* Light violet */
+  );
+  min-height: 100vh;
+  background-attachment: fixed;
+}
+
+body {
+  background: transparent;
+  min-height: 100vh;
 }

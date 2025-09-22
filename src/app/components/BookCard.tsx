@@ -82,12 +82,12 @@ const BookCard: React.FC<BookCardProps> = ({ book, onAddToCart }) => {
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-md overflow-hidden transform hover:-translate-y-1 transition-transform duration-300">
+    <div className="bg-white/80 backdrop-blur-sm rounded-lg shadow-lg shadow-purple-200/50 overflow-hidden transform hover:-translate-y-2 transition-all duration-300 border border-white/50">
       {/* Book Cover - Clickable */}
       <Link href={`/book/${book.id}`} className="block cursor-pointer">
-        <div className="relative h-64 w-full bg-gray-200 flex items-center justify-center hover:bg-gray-300 transition-colors duration-200">
+        <div className="relative h-64 w-full bg-gradient-to-br from-pink-50/50 to-purple-50/50 flex items-center justify-center hover:from-pink-100/50 hover:to-purple-100/50 transition-all duration-200">
           {/* Book Icon Placeholder */}
-          <div className="text-6xl text-gray-400">📚</div>
+          <div className="text-6xl text-purple-400">📚</div>
         </div>
       </Link>
       
@@ -138,8 +138,8 @@ const BookCard: React.FC<BookCardProps> = ({ book, onAddToCart }) => {
                 : showSuccess
                 ? 'bg-green-600 text-white cursor-pointer'
                 : isAddingToCart
-                ? 'bg-blue-400 text-white cursor-wait'
-                : 'bg-blue-600 text-white hover:bg-blue-700 cursor-pointer'
+                ? 'bg-purple-400 text-white cursor-wait'
+                : 'bg-purple-600 text-white hover:bg-purple-700 cursor-pointer'
             }`}
           >
             {showSuccess ? (
