@@ -18,7 +18,7 @@ const BookGrid: React.FC<BookGridProps> = ({ books, onAddToCart }) => {
   const [sortBy, setSortBy] = useState('title');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(8);
+  const itemsPerPage = 8; // Fixed items per page
   const [featuredCarouselIndex, setFeaturedCarouselIndex] = useState(0);
 
   // Memoize featured books to prevent re-calculation on every render
@@ -117,17 +117,11 @@ const BookGrid: React.FC<BookGridProps> = ({ books, onAddToCart }) => {
   // Reset to first page when filters or sorting change
   React.useEffect(() => {
     setCurrentPage(1);
-  }, [searchQuery, selectedGenre, sortBy, sortOrder, itemsPerPage]);
+  }, [searchQuery, selectedGenre, sortBy, sortOrder]);
 
   // Handle page change
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
-  };
-
-  // Handle items per page change
-  const handleItemsPerPageChange = (newItemsPerPage: number) => {
-    setItemsPerPage(newItemsPerPage);
-    setCurrentPage(1);
   };
 
   return (

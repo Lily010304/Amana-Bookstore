@@ -1,10 +1,8 @@
 // src/app/page.tsx
 'use client';
 
-import { useState } from 'react';
 import BookGrid from './components/BookGrid';
 import { books } from './data/books';
-import { CartItem } from './types';
 
 export default function HomePage() {
   // Cart handler that actually adds items to localStorage
@@ -29,7 +27,7 @@ export default function HomePage() {
     const cart = storedCart ? JSON.parse(storedCart) : [];
 
     // Check if book already exists in cart
-    const existingItemIndex = cart.findIndex((item: any) => item.bookId === book.id);
+    const existingItemIndex = cart.findIndex((item: { bookId: string; quantity: number }) => item.bookId === book.id);
 
     if (existingItemIndex > -1) {
       // Update quantity if item already exists

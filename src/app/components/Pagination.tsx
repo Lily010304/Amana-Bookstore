@@ -9,7 +9,6 @@ interface PaginationProps {
   onPageChange: (page: number) => void;
   itemsPerPage: number;
   totalItems: number;
-  onItemsPerPageChange?: (itemsPerPage: number) => void;
 }
 
 const Pagination: React.FC<PaginationProps> = ({
@@ -18,7 +17,6 @@ const Pagination: React.FC<PaginationProps> = ({
   onPageChange,
   itemsPerPage,
   totalItems,
-  onItemsPerPageChange,
 }) => {
   // Calculate range of items being displayed
   const startItem = (currentPage - 1) * itemsPerPage + 1;
@@ -136,7 +134,7 @@ const Pagination: React.FC<PaginationProps> = ({
         <span>Items per page:</span>
         <select
           value={itemsPerPage}
-          onChange={(e) => {
+          onChange={() => {
             // Reset to page 1 when changing items per page
             onPageChange(1);
             // The parent component should handle the itemsPerPage change
