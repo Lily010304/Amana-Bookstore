@@ -1,24 +1,98 @@
 // src/app/api/cart/route.ts
 import { NextResponse } from 'next/server';
+import { getCollection } from '@/lib/mongodb';
 
-// GET /api/cart - Get cart items
+// GET /api/cart - Get all cart items
 export async function GET() {
-  // In a real application, this would fetch cart items from a database
-  // based on user session or authentication token
-  return NextResponse.json({ message: 'Cart API endpoint - GET method' });
+  try {
+    const cartCollection = await getCollection('cart');
+    const booksCollection = await getCollection('books');
+    
+    // Get all cart items
+    const cartItems = await cartCollection.find({}).toArray();
+    
+    // Populate book details for each cart item
+    const populatedCart = await Promise.all(
+      cartItems.map(async (item) => {
+        const book = await booksCollection.findOne({ id: item.bookId });
+        return {
+          ...item,
+          book
+        };
+      })
+    );
+
+    return NextResponse.json({
+      cart: populatedCart,
+      total: populatedCart.length
+    });
+  } catch (error) {
+    console.error('Error fetching cart:', error);
+    return NextResponse.json(
+      { error: 'Failed to fetch cart from database' },
+      { status: 500 }
+    );
+  }
 }
 
 // POST /api/cart - Add item to cart
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    // In a real application, this would add an item to the user's cart in the database
-    return NextResponse.json({ 
-      message: 'Item added to cart successfully',
-      item: body 
-    });
-  } catch (err) {
-    console.error('Error adding item to cart:', err);
+    const { bookId, quantity = 1 } = body;
+
+    if (!bookId) {
+      return NextResponse.json(
+        { error: 'Book ID is required' },
+        { status: 400 }
+      );
+    }
+
+    const cartCollection = await getCollection('cart');
+    const booksCollection = await getCollection('books');
+
+    // Verify book exists
+    const book = await booksCollection.findOne({ id: bookId });
+    if (!book) {
+      return NextResponse.json(
+        { error: 'Book not found' },
+        { status: 404 }
+      );
+    }
+
+    // Check if item already exists in cart
+    const existingItem = await cartCollection.findOne({ bookId });
+
+    if (existingItem) {
+      // Update quantity if item already in cart
+      const updatedQuantity = existingItem.quantity + quantity;
+      await cartCollection.updateOne(
+        { bookId },
+        { $set: { quantity: updatedQuantity } }
+      );
+
+      return NextResponse.json({
+        message: 'Cart item quantity updated',
+        cartItem: { ...existingItem, quantity: updatedQuantity }
+      });
+    } else {
+      // Add new item to cart
+      const newCartItem = {
+        id: `cart-${Date.now()}`,
+        bookId,
+        quantity,
+        addedAt: new Date().toISOString()
+      };
+
+      await cartCollection.insertOne(newCartItem);
+
+      return NextResponse.json({
+        message: 'Item added to cart successfully',
+        cartItem: newCartItem
+      }, { status: 201 });
+    }
+  } catch (error) {
+    console.error('Error adding item to cart:', error);
     return NextResponse.json(
       { error: 'Failed to add item to cart' },
       { status: 500 }
@@ -26,17 +100,49 @@ export async function POST(request: Request) {
   }
 }
 
-// PUT /api/cart - Update cart item
+// PUT /api/cart - Update cart item quantity
 export async function PUT(request: Request) {
   try {
     const body = await request.json();
-    // In a real application, this would update an existing cart item
-    return NextResponse.json({ 
+    const { id, bookId, quantity } = body;
+
+    if ((!id && !bookId) || !quantity) {
+      return NextResponse.json(
+        { error: 'Cart item ID or bookId and quantity are required' },
+        { status: 400 }
+      );
+    }
+
+    if (quantity < 1) {
+      return NextResponse.json(
+        { error: 'Quantity must be at least 1' },
+        { status: 400 }
+      );
+    }
+
+    const cartCollection = await getCollection('cart');
+    
+    // Build filter
+    const filter = id ? { id } : { bookId };
+    
+    const result = await cartCollection.updateOne(
+      filter,
+      { $set: { quantity } }
+    );
+
+    if (result.matchedCount === 0) {
+      return NextResponse.json(
+        { error: 'Cart item not found' },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json({
       message: 'Cart item updated successfully',
-      item: body 
+      quantity
     });
-  } catch (err) {
-    console.error('Error updating cart item:', err);
+  } catch (error) {
+    console.error('Error updating cart item:', error);
     return NextResponse.json(
       { error: 'Failed to update cart item' },
       { status: 500 }
@@ -44,19 +150,48 @@ export async function PUT(request: Request) {
   }
 }
 
-// DELETE /api/cart - Remove item from cart
+// DELETE /api/cart - Remove item from cart or clear entire cart
 export async function DELETE(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
-    const itemId = searchParams.get('itemId');
+    const itemId = searchParams.get('id');
+    const bookId = searchParams.get('bookId');
+    const clearAll = searchParams.get('clearAll');
+
+    const cartCollection = await getCollection('cart');
+
+    if (clearAll === 'true') {
+      // Clear entire cart
+      await cartCollection.deleteMany({});
+      return NextResponse.json({
+        message: 'Cart cleared successfully'
+      });
+    }
+
+    if (!itemId && !bookId) {
+      return NextResponse.json(
+        { error: 'Item ID or bookId is required' },
+        { status: 400 }
+      );
+    }
+
+    // Build filter
+    const filter = itemId ? { id: itemId } : { bookId };
     
-    // In a real application, this would remove an item from the user's cart
-    return NextResponse.json({ 
-      message: 'Item removed from cart successfully',
-      itemId 
+    const result = await cartCollection.deleteOne(filter);
+
+    if (result.deletedCount === 0) {
+      return NextResponse.json(
+        { error: 'Cart item not found' },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json({
+      message: 'Item removed from cart successfully'
     });
-  } catch (err) {
-    console.error('Error removing cart item:', err);
+  } catch (error) {
+    console.error('Error removing cart item:', error);
     return NextResponse.json(
       { error: 'Failed to remove item from cart' },
       { status: 500 }

@@ -1,50 +1,108 @@
 // src/app/page.tsx
 'use client';
 
+import { useState, useEffect } from 'react';
 import BookGrid from './components/BookGrid';
-import { books } from './data/books';
+import { Book } from './types';
 
 export default function HomePage() {
-  // Cart handler that actually adds items to localStorage
-  const handleAddToCart = (bookId: string) => {
-    // Find the book by ID
-    const book = books.find(b => b.id === bookId);
-    if (!book) {
-      console.error('Book not found:', bookId);
-      return;
-    }
+  const [books, setBooks] = useState<Book[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-    // Create cart item
-    const cartItem = {
-      id: `${book.id}-${Date.now()}`,
-      bookId: book.id,
-      quantity: 1,
-      addedAt: new Date().toISOString(),
+  // Fetch books from API
+  useEffect(() => {
+    const fetchBooks = async () => {
+      try {
+        const response = await fetch('/api/books');
+        if (!response.ok) {
+          throw new Error('Failed to fetch books');
+        }
+        const data = await response.json();
+        setBooks(data.books || data); // Handle both formats
+        setIsLoading(false);
+      } catch (err) {
+        console.error('Error fetching books:', err);
+        setError('Failed to load books. Please try again later.');
+        setIsLoading(false);
+      }
     };
 
-    // Get existing cart from localStorage
-    const storedCart = localStorage.getItem('cart');
-    const cart = storedCart ? JSON.parse(storedCart) : [];
+    fetchBooks();
+  }, []);
 
-    // Check if book already exists in cart
-    const existingItemIndex = cart.findIndex((item: { bookId: string; quantity: number }) => item.bookId === book.id);
+  // Cart handler that adds items via API
+  const handleAddToCart = async (bookId: string) => {
+    try {
+      const response = await fetch('/api/cart', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          bookId,
+          quantity: 1
+        })
+      });
 
-    if (existingItemIndex > -1) {
-      // Update quantity if item already exists
-      cart[existingItemIndex].quantity += 1;
-    } else {
-      // Add new item to cart
-      cart.push(cartItem);
+      if (!response.ok) {
+        throw new Error('Failed to add to cart');
+      }
+
+      const result = await response.json();
+      console.log(result.message);
+
+      // Also update localStorage for navbar counter
+      const storedCart = localStorage.getItem('cart');
+      const cart = storedCart ? JSON.parse(storedCart) : [];
+      const existingItemIndex = cart.findIndex((item: { bookId: string }) => item.bookId === bookId);
+
+      if (existingItemIndex > -1) {
+        cart[existingItemIndex].quantity += 1;
+      } else {
+        cart.push({
+          id: `${bookId}-${Date.now()}`,
+          bookId,
+          quantity: 1,
+          addedAt: new Date().toISOString()
+        });
+      }
+
+      localStorage.setItem('cart', JSON.stringify(cart));
+      window.dispatchEvent(new CustomEvent('cartUpdated'));
+
+    } catch (err) {
+      console.error('Error adding to cart:', err);
+      alert('Failed to add item to cart. Please try again.');
     }
-
-    // Save updated cart to localStorage
-    localStorage.setItem('cart', JSON.stringify(cart));
-
-    // Dispatch custom event to notify Navbar
-    window.dispatchEvent(new CustomEvent('cartUpdated'));
-
-    console.log(`Added book "${book.title}" to cart`);
   };
+
+  if (isLoading) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="text-center py-20">
+          <div className="inline-block h-12 w-12 animate-spin rounded-full border-4 border-solid border-blue-600 border-r-transparent"></div>
+          <p className="mt-4 text-gray-600">Loading books...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="text-center py-20 bg-red-50 rounded-lg">
+          <p className="text-red-600 text-xl">{error}</p>
+          <button 
+            onClick={() => window.location.reload()} 
+            className="mt-4 px-6 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto px-4 py-8">

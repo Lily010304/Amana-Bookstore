@@ -30,8 +30,8 @@ export default function RootLayout({
   // Each page interacting with the cart will manage its state via localStorage.
 
   return (
-    <html lang="en">
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased bg-gray-50 pt-16`}>
+    <html lang="en" suppressHydrationWarning>
+      <body className={`${geistSans.variable} ${geistMono.variable} antialiased bg-gray-50 pt-16`} suppressHydrationWarning>
         <Navbar />
         <main>{children}</main>
       </body>

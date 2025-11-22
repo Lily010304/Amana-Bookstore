@@ -4,8 +4,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { books } from '../../data/books';
-import { reviews } from '../../data/reviews';
 import { Book, CartItem, Review } from '../../types';
 
 export default function BookDetailPage() {
@@ -20,53 +18,89 @@ export default function BookDetailPage() {
   const { id } = params;
 
   useEffect(() => {
-    if (id) {
-      const foundBook = books.find((b) => b.id === id);
-      if (foundBook) {
-        setBook(foundBook);
-        // Get reviews for this book
-        const bookReviewsData = reviews.filter((review) => review.bookId === id);
-        setBookReviews(bookReviewsData);
-      } else {
-        setError('Book not found.');
+    const fetchBookData = async () => {
+      if (!id) return;
+
+      try {
+        // Fetch book details
+        const bookResponse = await fetch(`/api/books/${id}`);
+        if (!bookResponse.ok) {
+          if (bookResponse.status === 404) {
+            setError('Book not found.');
+          } else {
+            throw new Error('Failed to fetch book');
+          }
+          setIsLoading(false);
+          return;
+        }
+        const bookData = await bookResponse.json();
+        setBook(bookData);
+
+        // Fetch reviews for this book
+        const reviewsResponse = await fetch(`/api/reviews?bookId=${id}`);
+        if (reviewsResponse.ok) {
+          const reviewsData = await reviewsResponse.json();
+          setBookReviews(reviewsData.reviews || reviewsData);
+        }
+
+        setIsLoading(false);
+      } catch (err) {
+        console.error('Error fetching book data:', err);
+        setError('Failed to load book details. Please try again later.');
+        setIsLoading(false);
       }
-      setIsLoading(false);
-    }
-  }, [id]);
-
-  const handleAddToCart = () => {
-    if (!book) return;
-
-    const cartItem: CartItem = {
-      id: `${book.id}-${Date.now()}`,
-      bookId: book.id,
-      quantity: quantity,
-      addedAt: new Date().toISOString(),
     };
 
-    // Retrieve existing cart from localStorage
-    const storedCart = localStorage.getItem('cart');
-    const cart: CartItem[] = storedCart ? JSON.parse(storedCart) : [];
+    fetchBookData();
+  }, [id]);
 
-    // Check if the book is already in the cart
-    const existingItemIndex = cart.findIndex((item) => item.bookId === book.id);
+  const handleAddToCart = async () => {
+    if (!book) return;
 
-    if (existingItemIndex > -1) {
-      // Update quantity if item already exists
-      cart[existingItemIndex].quantity += quantity;
-    } else {
-      // Add new item to cart
-      cart.push(cartItem);
+    try {
+      // Add to cart via API
+      const response = await fetch('/api/cart', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          bookId: book.id,
+          quantity: quantity
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to add to cart');
+      }
+
+      // Also update localStorage for navbar counter
+      const cartItem: CartItem = {
+        id: `${book.id}-${Date.now()}`,
+        bookId: book.id,
+        quantity: quantity,
+        addedAt: new Date().toISOString(),
+      };
+
+      const storedCart = localStorage.getItem('cart');
+      const cart: CartItem[] = storedCart ? JSON.parse(storedCart) : [];
+      const existingItemIndex = cart.findIndex((item) => item.bookId === book.id);
+
+      if (existingItemIndex > -1) {
+        cart[existingItemIndex].quantity += quantity;
+      } else {
+        cart.push(cartItem);
+      }
+
+      localStorage.setItem('cart', JSON.stringify(cart));
+      window.dispatchEvent(new CustomEvent('cartUpdated'));
+
+      // Redirect to the cart page
+      router.push('/cart');
+    } catch (err) {
+      console.error('Error adding to cart:', err);
+      alert('Failed to add item to cart. Please try again.');
     }
-
-    // Save updated cart to localStorage
-    localStorage.setItem('cart', JSON.stringify(cart));
-
-    // Dispatch a custom event to notify the Navbar
-    window.dispatchEvent(new CustomEvent('cartUpdated'));
-
-    // Redirect to the cart page after adding
-    router.push('/cart');
   };
   
   const renderStars = (rating: number) => {

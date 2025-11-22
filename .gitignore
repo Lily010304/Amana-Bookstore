@@ -39,3 +39,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+.env*.local
+
+# mongodb generated data (can be regenerated with npm run convert-to-json)
+/mongodb-data
